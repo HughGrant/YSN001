@@ -77,20 +77,14 @@ class HX711:
         weight = round(weight, 1)
         return weight
 
-    def tare(self, times=15):
+    def tare(self, times=15) -> None:
         self.set_offset(self.read_average(times))
 
-    def set_scale(self, scale):
+    def set_scale(self, scale) -> None:
         self.SCALE = scale
 
-    def set_offset(self, offset):
+    def set_offset(self, offset) -> None:
         self.OFFSET = offset
-
-    def set_time_constant(self, time_constant = None):
-        if time_constant is None:
-            return self.time_constant
-        elif 0 < time_constant < 1.0:
-            self.time_constant = time_constant
 
     def power_down(self):
         self.pSCK.value(False)
