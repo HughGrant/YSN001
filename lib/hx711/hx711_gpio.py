@@ -2,17 +2,15 @@ import board
 import time
 
 class HX711:
-    def __init__(self, pd_sck, dout, gain=128):
+    def __init__(self, pd_sck, dout, gain: int=128) -> None:
         self.pSCK = pd_sck
         self.pOUT = dout
         self.pSCK.value = False
 
-        self.GAIN = 0
-        self.OFFSET = 0
-        self.SCALE = 1
-
-        self.time_constant = 0.25
-        self.filtered = 0
+        self.GAIN: int = 0
+        self.OFFSET: float = 0.0
+        self.SCALE: float = 1.0
+        self.last_val: int = 0.0
 
         self.set_gain(gain)
 
@@ -25,17 +23,16 @@ class HX711:
             self.GAIN = 2
 
         self.read()
-        self.filtered = self.read()
 
-    def is_ready(self):
+    def is_ready(self) -> bool:
         return self.pOUT == 0
 
-    def read(self):
+    def read(self) -> int:
         # wait for the device being ready
         for _ in range(500):
             if self.pOUT.value == 0:
                 break
-            time.sleep(0.001)
+            time.sleep(0.0125)
         else:
             raise OSError("Sensor does not respond")
 
@@ -55,23 +52,30 @@ class HX711:
         if result > 0x7fffff:
             result -= 0x1000000
 
+        self.last_val = result
         return result
 
-    def read_average(self, times=3):
+    def read_average(self, times: int=3) -> float:
         sum = 0
-        for i in range(times):
+        for _ in range(times):
             sum += self.read()
         return sum / times
 
-    def read_lowpass(self):
-        self.filtered += self.time_constant * (self.read() - self.filtered)
-        return self.filtered
 
-    def get_value(self):
-        return self.read_lowpass() - self.OFFSET
-
-    def get_units(self):
+    def get_value(self) -> int:
+        return self.read() - self.OFFSET
+    
+    def get_units(self) -> float:
         return self.get_value() / self.SCALE
+
+    def get_round_units(self) -> float:
+        weight =self.get_units()
+        print("weight: ", weight)
+        if weight < 0.0:
+            weight = 0.0
+
+        weight = round(weight, 1)
+        return weight
 
     def tare(self, times=15):
         self.set_offset(self.read_average(times))
