@@ -1,93 +1,43 @@
-import board
-import rotaryio
-import digitalio
-import time
-import busio
+import board, digitalio
 
-from lib.lcd.lcd import LCD
-from lib.lcd.i2c_pcf8574_interface import I2CPCF8574Interface
-from lib.hx711.hx711_gpio import HX711
-from lib.lcd.lcd import CursorMode
-from lib.nvm import nvm_helper
 # import my modules here
 from menu import Menu
 from encoder import Encoder
+from screen import Screen
+from scale import Scale
+from page import Page
+
 # setup board led
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
-# setup i2c for lcd display
-i2c = busio.I2C(board.GP1, board.GP0)
-# setup for hx711
-pin_dt = digitalio.DigitalInOut(board.GP15)
-pin_sck = digitalio.DigitalInOut(board.GP14)
-pin_sck.direction = digitalio.Direction.OUTPUT
 # initialize load cell
-rom = nvm_helper.read_data()
-offset = rom.get('OFFSET')
-scale = rom.get('SCALE')
-if offset is None or scale is None:
-    rom.update({'OFFSET': 95700, 'SCALE': 700})
-    nvm_helper.save_data(rom, False)
+scale = Scale(board.GP15, board.GP14)
 
-hx = HX711(pin_sck, pin_dt)
-hx.set_offset(rom.get('OFFSET'))
-hx.set_scale(rom.get('SCALE'))
-
-# initialze ec11 encoder
+# initialize ec11 encoder
 ec11_encoder = Encoder(board.GP4, board.GP3, board.GP2)
 
-#blink the board LED if i2c lock cannot be accquired
-# while not i2c.try_lock():
-#     led.value = True
-#     time.sleep(0.5)
-#     led.value = False
-#     time.sleep(0.5)
+# initialize lcd screen
+screen = Screen(board.GP1, board.GP0)
 
-# try:
-#     address = i2c.scan()[0]
-#     print("i2c address for lcd:", hex(address))
-# finally:
-#     i2c.unlock()
+# initialize menu to be dispalyed on the lcd screen
 
-# default size for the interface: 20x4x8
-# default I2C address: o0x27
-lcd = LCD(I2CPCF8574Interface(i2c, 0x27))
+value_menu = Menu("Value", 0, 0)
+offset_menu = Menu("OFFSET", 1, 0)
+factor_menu = Menu("FACTOR", 2, 0)
+weight_menu = Menu("WEIGHT", 3, 0)
 
-#Display Menu
-#Calibrate Load Cell
+main_screen = Page("Main Screen", [value_menu, offset_menu, factor_menu, weight_menu])
 
 while True:
-    lcd.home()
-    lcd.print("Read Value: " + str(hx.last_val))
-    lcd.set_cursor_pos(1, 0)
-    lcd.print("OFFSET:" + str(hx.OFFSET))
-    lcd.set_cursor_pos(2, 0)
-    lcd.print("SCALE:" + str(hx.SCALE))
-    ec11_current_pos = ec11_encoder.position
-    pos_change = ec11_current_pos - ec11_last_pos
-    if pos_change > 0:
-        hx.SCALE = hx.SCALE + 10
+    scale.get_value()
+    # main_screen.display(screen)
 
-    if pos_change < 0:
-        hx.SCALE = hx.SCALE - 10
+    # if ec11_encoder.button_pressed():
+    #     screen.clear()
+    #     scale.tare()
 
-    ec11_last_pos = ec11_current_pos
-
-    if not ec11_btn.value and not ec11_btn_state:
-        ec11_btn_state = True
-    if ec11_btn.value and ec11_btn_state == True:
-        lcd.set_cursor_pos(0, 0)
-        lcd.print("Tare, Please Wait...")
-        hx.tare()
-        rom = nvm_helper.read_data()
-        rom.update({'OFFSET': hx.OFFSET})
-        nvm_helper.save_data(rom, False)
-        lcd.clear()
-        ec11_btn_state = False
-
-    weight = hx.get_round_units()
-    lcd.set_cursor_pos(3, 0)
-    lcd.print("Weight: " + str(weight) + "G")
-    # lcd.set_cursor_pos(3, 19)
-    # lcd.set_cursor_mode(CursorMode.LINE)
+    # value_menu.update(scale.get_reading())
+    # offset_menu.update(scale.get_offset())
+    # factor_menu.update(scale.get_factor())
+    # weight_menu.update(scale.get_weight())

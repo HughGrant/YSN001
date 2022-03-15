@@ -1,4 +1,3 @@
-import board
 import time
 
 class HX711:
@@ -9,12 +8,11 @@ class HX711:
 
         self.GAIN: int = 0
         self.OFFSET: float = 0.0
-        self.SCALE: float = 1.0
-        self.last_val: int = 0.0
+        self.FACTOR: float = 1.0
 
         self.set_gain(gain)
 
-    def set_gain(self, gain):
+    def set_gain(self, gain: int):
         if gain is 128:
             self.GAIN = 1
         elif gain is 64:
@@ -52,7 +50,7 @@ class HX711:
         if result > 0x7fffff:
             result -= 0x1000000
 
-        self.last_val = result
+        print("raw reading: ", result)
         return result
 
     def read_average(self, times: int=3) -> float:
@@ -66,7 +64,7 @@ class HX711:
         return self.read() - self.OFFSET
     
     def get_units(self) -> float:
-        return self.get_value() / self.SCALE
+        return self.get_value() / self.FACTOR
 
     def get_round_units(self) -> float:
         weight =self.get_units()
@@ -79,8 +77,8 @@ class HX711:
     def tare(self, times=15) -> None:
         self.set_offset(self.read_average(times))
 
-    def set_scale(self, scale) -> None:
-        self.SCALE = scale
+    def set_scale(self, factor) -> None:
+        self.FACTOR = factor
 
     def set_offset(self, offset) -> None:
         self.OFFSET = offset
