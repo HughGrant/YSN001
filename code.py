@@ -3,15 +3,19 @@ import rotaryio
 import digitalio
 import time
 import busio
+
 from lib.lcd.lcd import LCD
 from lib.lcd.i2c_pcf8574_interface import I2CPCF8574Interface
 from lib.hx711.hx711_gpio import HX711
 from lib.lcd.lcd import CursorMode
-
-
+from lib.nvm import nvm_helper
+# import my modules here
+from menu import Menu
+from encoder import Encoder
 # setup board led
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
+
 # setup i2c for lcd display
 i2c = busio.I2C(board.GP1, board.GP0)
 # setup for hx711
@@ -19,20 +23,19 @@ pin_dt = digitalio.DigitalInOut(board.GP15)
 pin_sck = digitalio.DigitalInOut(board.GP14)
 pin_sck.direction = digitalio.Direction.OUTPUT
 # initialize load cell
-hx = HX711(pin_sck, pin_dt)
-time.sleep(0.5)
-hx.set_scale(700)
-hx.tare()
+rom = nvm_helper.read_data()
+offset = rom.get('OFFSET')
+scale = rom.get('SCALE')
+if offset is None or scale is None:
+    rom.update({'OFFSET': 95700, 'SCALE': 700})
+    nvm_helper.save_data(rom, False)
 
-# setup ec11 rotary encoder
-# switch channel A&B will change the direction
-ec11_encoder = rotaryio.IncrementalEncoder(board.GP4, board.GP3) 
-ec11_last_pos = ec11_counter = ec11_encoder.position
-# setup ec11 button
-ec11_btn = digitalio.DigitalInOut(board.GP2)
-ec11_btn.direction = digitalio.Direction.INPUT
-ec11_btn.pull = digitalio.Pull.UP
-ec11_btn_state = False 
+hx = HX711(pin_sck, pin_dt)
+hx.set_offset(rom.get('OFFSET'))
+hx.set_scale(rom.get('SCALE'))
+
+# initialze ec11 encoder
+ec11_encoder = Encoder(board.GP4, board.GP3, board.GP2)
 
 #blink the board LED if i2c lock cannot be accquired
 # while not i2c.try_lock():
@@ -75,13 +78,16 @@ while True:
         ec11_btn_state = True
     if ec11_btn.value and ec11_btn_state == True:
         lcd.set_cursor_pos(0, 0)
-        lcd.print("Tare, please wait")
-        hx.tare(30)
+        lcd.print("Tare, Please Wait...")
+        hx.tare()
+        rom = nvm_helper.read_data()
+        rom.update({'OFFSET': hx.OFFSET})
+        nvm_helper.save_data(rom, False)
         lcd.clear()
         ec11_btn_state = False
 
     weight = hx.get_round_units()
     lcd.set_cursor_pos(3, 0)
-    lcd.print("Weight: " + str(weight))
+    lcd.print("Weight: " + str(weight) + "G")
     # lcd.set_cursor_pos(3, 19)
     # lcd.set_cursor_mode(CursorMode.LINE)

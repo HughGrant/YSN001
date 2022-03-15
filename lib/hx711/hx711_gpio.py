@@ -62,7 +62,7 @@ class HX711:
         return sum / times
 
 
-    def get_value(self) -> int:
+    def get_value(self) -> float:
         return self.read() - self.OFFSET
     
     def get_units(self) -> float:
@@ -70,13 +70,12 @@ class HX711:
 
     def get_round_units(self) -> float:
         weight =self.get_units()
-        print("weight: ", weight)
         if weight < 0.0:
             weight = 0.0
 
         weight = round(weight, 1)
         return weight
-
+    
     def tare(self, times=15) -> None:
         self.set_offset(self.read_average(times))
 
