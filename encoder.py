@@ -15,13 +15,11 @@ class Encoder:
         self.counter = 0
     
     def button_pressed(self) -> bool:
-        return not self.btn.value
-        # print(self.btn.value, "button value")
-        # if not self.btn.value and not self.btn_state:
-        #     self.btn_state = True
-        # if self.btn.value and self.btn_state == True:
-        #     return True
-        # return False
+        if not self.btn.value and not self.btn_state:
+            self.btn_state = True
+        if self.btn.value and self.btn_state == True:
+            return True
+        return False
     
     def posistion_changed(self) -> int:
         current_pos = self.ec11.position

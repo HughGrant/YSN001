@@ -31,6 +31,9 @@ class Screen:
     def clear(self) -> None:
         self.lcd.clear()
     
+    def home(self) -> None:
+        self.lcd.home()
+    
     def get_i2c_address(self) -> str:
         while not self.i2c.try_lock():
             print("i2c tring to get the lock, please wait")

@@ -50,7 +50,6 @@ class HX711:
         if result > 0x7fffff:
             result -= 0x1000000
 
-        print("raw reading: ", result)
         return result
 
     def read_average(self, times: int=3) -> float:

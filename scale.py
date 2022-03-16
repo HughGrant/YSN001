@@ -1,13 +1,14 @@
-from lib.hx711.hx711_gpio import HX711
 import board, digitalio, microcontroller
 
-import parameter as rom
+from lib.hx711.hx711_gpio import HX711
+from parameter import Setting
 
 class Scale:
     def __init__(
         self, 
         slk: microcontroller.Pin,
-        dat: microcontroller.Pin
+        dat: microcontroller.Pin,
+        rom: Setting
     ) -> None:
         # setup for hx711
         self.slk = digitalio.DigitalInOut(slk)
@@ -15,9 +16,10 @@ class Scale:
         self.slk.direction = digitalio.Direction.OUTPUT
         # init scale
         self.hx = HX711(self.slk, self.dat)
-    
-        self.hx.set_offset(rom.get('OFFSET'))
-        self.hx.set_scale(rom.get('FACTOR'))
+        self.rom = rom
+        # set scale data read from flash
+        self.hx.set_offset(self.rom.get('OFFSET'))
+        self.hx.set_scale(self.rom.get('FACTOR'))
 
     def get_weight(self) -> float:
         return self.hx.get_round_units()
@@ -36,4 +38,4 @@ class Scale:
 
     def tare(self):
         self.hx.tare()
-        rom.write('OFFSET', self.hx.OFFSET)
+        rom.save('OFFSET', self.hx.OFFSET)
