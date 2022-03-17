@@ -14,13 +14,15 @@ class Screen:
         self,
         scl: microcontroller.Pin,
         sda: microcontroller.Pin,
-        col: int = 24,
+        cols: int = 24,
         rows: int = 4,
         address: str = 0x27
     ) -> None:
+        self.max_cols = cols
+        self.max_rows = rows
         # setup i2c for lcd display
         i2c = busio.I2C(scl, sda)
-        self.lcd = LCD(I2CPCF8574Interface(i2c, address))
+        self.lcd = LCD(I2CPCF8574Interface(i2c, address), cols, rows)
     
     def set_cursor_pos(self, row: int, col: int) -> None:
         self.lcd.set_cursor_pos(row, col)
@@ -33,6 +35,10 @@ class Screen:
     
     def home(self) -> None:
         self.lcd.home()
+    
+    def clear_row(self, row: int) -> None:
+        self.lcd.set_cursor_pos(row, 0)
+        self.lcd.print(" " * self.max_cols)
     
     def get_i2c_address(self) -> str:
         while not self.i2c.try_lock():

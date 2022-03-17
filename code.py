@@ -2,11 +2,10 @@ import board, digitalio
 import time
 
 # import my modules here
-from menu import Menu
 from encoder import Encoder
 from screen import Screen
 from scale import Scale
-from page import Page
+from page import Page, Row, Element
 
 import parameter as PARAS
 
@@ -14,8 +13,11 @@ import parameter as PARAS
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
+# initialize a Setting instance
+rom = PARAS.Setting()
+
 # initialize load cell
-scale = Scale(board.GP14, board.GP15)
+scale = Scale(board.GP14, board.GP15, rom)
 
 # initialize ec11 encoder
 ec11_encoder = Encoder(board.GP4, board.GP3, board.GP2)
@@ -23,45 +25,30 @@ ec11_encoder = Encoder(board.GP4, board.GP3, board.GP2)
 # initialize lcd screen
 screen = Screen(board.GP1, board.GP0)
 
-# initialize a Setting instance
-rom = PARAS.Setting()
-
-
-
-def update_style1(name):
-    return rom.get(name)
-
-def update_style2(name1, name2):
-    return (rom.get(name1), rom.get(name2))
-
-def display_style1(name, value):
-    return "{}: {}".format(name, value)
-
-def display_style2(name, showing_value, value):
-    return "{}: {}/{}".format(name, showing_value, value)
-
 # weight display in Main Page
-weight_display = Menu("WEIGHT", 2, 0)
+raw_weight = Element("READ_WEIGHT", True)
+raw_weight.update_func = lambda: scale.get_weight()
+max_weight = Element(PARAS.MAX_WEIGHT)
+max_weight.update_func = lambda: rom.get(PARAS.MAX_WEIGHT)
+weight_row = Row("WEIGHT", [raw_weight, max_weight], True)
+weight_row.display_func = lambda values: "WEIGHT: {:>4}/{}".format(*values)
 
-def weight_update_style(name):
-    return (scale.get_weight(), rom.get(name))
-
-weight_display.update_func = weight_update_style(PARAS.MAX_WEIGHT)
-weight_display.content_func = display_style2(PARAS.MAX_WEIGHT)
 # counter display in Main Page
-counter_display = Menu('COUNTER', 3, 0)
-counter_display.update_func = update_style2(PARAS.CURRENT_CNT, PARAS.MAX_CNT)
-counter_display.content_func = display_style2(PARAS.CURRENT_CNT, PARAS.MAX_CNT)
-
+current_cnt = Element(PARAS.CURRENT_CNT)
+current_cnt.update_func = lambda: rom.get(PARAS.CURRENT_CNT) 
+max_cnt = Element(PARAS.MAX_CNT)
+max_cnt.update_func = lambda: rom.get(PARAS.MAX_CNT)
+counter_row = Row("COUNTER", [current_cnt, max_cnt])
+counter_row.display_func = lambda values: "COUNTER: {:05d}/{}".format(*values)
 
 # initialize menu to be dispalyed on the lcd screen
-value_menu = Menu("Value", 0, 0)
-offset_menu = Menu("OFFSET", 1, 0)
-factor_menu = Menu("FACTOR", 2, 0)
+value_menu = Element("Value")
+offset_menu = Element("OFFSET")
+factor_menu = Element("FACTOR")
 
 # setting up the pages
-main_page = Page('Main', [weight_display, counter_display])
-calibration_page= Page("Calibration", [value_menu, offset_menu, factor_menu, weight_menu])
+main_page = Page('Main', [weight_row, counter_row])
+calibration_page= Page("Calibration", [value_menu, offset_menu, factor_menu])
 
 while True:
     if ec11_encoder.button_pressed():
