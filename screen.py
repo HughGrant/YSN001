@@ -36,9 +36,14 @@ class Screen:
     def home(self) -> None:
         self.lcd.home()
     
-    def clear_row(self, row: int) -> None:
-        self.lcd.set_cursor_pos(row, 0)
-        self.lcd.print(" " * self.max_cols)
+    def set_cursor_position(self, row: int, col: int) -> None:
+        self.set_cursor_pos(row, col)
+    
+    def cursor_line(self) -> None:
+        self.lcd.set_cursor_mode(CursorMode.LINE)
+
+    def cursor_blink(self) -> None:
+        self.lcd.set_cursor_mode(CursorMode.BLINK)
     
     def get_i2c_address(self) -> str:
         while not self.i2c.try_lock():

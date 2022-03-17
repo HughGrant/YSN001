@@ -1,4 +1,5 @@
 import digitalio, rotaryio, board
+from page import Item
 
 class Encoder:
     def __init__(self, channelA, channelB, button) -> None:
@@ -11,6 +12,8 @@ class Encoder:
         self.btn.pull = digitalio.Pull.UP
         self.btn_state = False 
         # initialize button position
+        self.decrease_state = False
+        self.increase_state = False
         self.last_pos = self.ec11.position
         self.counter = 0
     
@@ -21,19 +24,19 @@ class Encoder:
             return True
         return False
     
-    def posistion_changed(self) -> int:
+    def posistion_changed(self, item: Item) -> int:
         current_pos = self.ec11.position
         pos_change = current_pos - self.last_pos
         if pos_change > 0:
-            self.rotary_increase()
+            self.rotary_increase(item)
 
         if pos_change < 0:
-            self.rotary_decrease()
+            self.rotary_decrease(item)
 
         self.last_pos = current_pos
 
-    def rotary_increase(self) -> None:
+    def rotary_increase(self, item: Item) -> None:
         print('rotary increase')
 
-    def rotary_decrease(self) -> None:
+    def rotary_decrease(self, item: Item) -> None:
         print('rotary decrease')

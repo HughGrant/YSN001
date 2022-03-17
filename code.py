@@ -5,7 +5,7 @@ import time
 from encoder import Encoder
 from screen import Screen
 from scale import Scale
-from page import Page, Row, Element
+from page import Page, Item
 
 import parameter as PARAS
 
@@ -25,43 +25,86 @@ ec11_encoder = Encoder(board.GP4, board.GP3, board.GP2)
 # initialize lcd screen
 screen = Screen(board.GP1, board.GP0)
 
-# weight display in Main Page
-raw_weight = Element("READ_WEIGHT", True)
-raw_weight.update_func = lambda: scale.get_weight()
-max_weight = Element(PARAS.MAX_WEIGHT)
-max_weight.update_func = lambda: rom.get(PARAS.MAX_WEIGHT)
-weight_row = Row("WEIGHT", [raw_weight, max_weight], True)
-weight_row.display_func = lambda values: "WEIGHT: {:>4}/{}".format(*values)
 
-# counter display in Main Page
-current_cnt = Element(PARAS.CURRENT_CNT)
-current_cnt.update_func = lambda: rom.get(PARAS.CURRENT_CNT) 
-max_cnt = Element(PARAS.MAX_CNT)
-max_cnt.update_func = lambda: rom.get(PARAS.MAX_CNT)
-counter_row = Row("COUNTER", [current_cnt, max_cnt])
-counter_row.display_func = lambda values: "COUNTER: {:05d}/{}".format(*values)
 
-# initialize menu to be dispalyed on the lcd screen
-value_menu = Element("Value")
-offset_menu = Element("OFFSET")
-factor_menu = Element("FACTOR")
+# Main Page, Row 0, displaying current_weight/max_weight
+unit_weight_item = Item("READ_WEIGHT", always_refresh=True)
+unit_weight_item.update_func = lambda: "{:>6}".format(scale.get_weight())
 
-# setting up the pages
-main_page = Page('Main', [weight_row, counter_row])
-calibration_page= Page("Calibration", [value_menu, offset_menu, factor_menu])
+max_weight_item = Item(PARAS.MAX_WEIGHT)
+max_weight_item.update_func = lambda: "{:.1f}".format(rom.get(PARAS.MAX_WEIGHT))
+
+# Main Page, Row 1, displaying current_cnt/max_cnt
+current_cnt_item = Item(PARAS.CURRENT_CNT)
+current_cnt_item.update_func = lambda: "{:05d}".format(rom.get(PARAS.CURRENT_CNT))
+
+max_cnt_item = Item(PARAS.MAX_CNT)
+max_cnt_item.update_func = lambda: "{}".format(rom.get(PARAS.MAX_CNT))
+
+# Main Page, Row 2, single menu jump to Setting Page
+setting_clickable = Item("SETTING", clickable=True)
+
+# Main Page, Row 3, single menu jump to Calibrate Page
+calibrate_clickable = Item("CALIBRATE SCALE", clickable=True)
+
+# assemble Main Page
+main_page = Page("MAIN", [
+    ["WEIGHT: ", unit_weight_item, "/", max_weight_item],
+    ["COUNTER: ", current_cnt_item, "/", max_cnt_item],
+    setting_clickable,
+    calibrate_clickable 
+])
+
+# Calibrate Page, Row 0, displaying raw value read from hx711 sensor
+raw_value_item = Item("Value")
+raw_value_item.update_func = lambda: scale.get_value()
+
+# Calibrate Page, Row 1, displaying offset
+offset_item = Item("OFFSET")
+offset_item.update_func = lambda: scale.get_offset()
+
+# Calibrate Page, Row 2, displaying factor
+factor_item = Item("FACTOR")
+factor_item.update_func = lambda: scale.get_factor()
+
+# Calibrate Page, Row 3, displaying current weight
+# unit_weight_item
+
+calibrate_page = Page("CALIBRATION", [
+    ["RAW VALUE: ", raw_value_item],
+    ["OFFSET:", offset_item],
+    ["FACTOR:", factor_item],
+    ["WEIGHT:", unit_weight_item]
+])
+calibrate_clickable.next_page = calibrate_page
+
+# Config Page
+
+config_page = Page("CONFIG", [
+    ["MAX WEIGHT: ", max_weight_item],
+    ["MAX_COUNTER: ", max_cnt_item],
+    "PLACE HOLDER 1",
+    "PLACE HOLDER 2"
+])
+setting_clickable.next_page = config_page
+
+#connecting pages via the elements
+
+# initial cursor position element
 
 while True:
-    if ec11_encoder.button_pressed():
-        screen.clear()
-        screen.home()
-        screen.print("Please wait...")
-        scale.tare()
-        screen.print("Done")
-        ec11_encoder.btn_state = False
+    # if ec11_encoder.rotary_increase():
+    #     pass
 
-    # value_menu.update(scale.get_reading())
-    # offset_menu.update(scale.get_offset())
-    # factor_menu.update(scale.get_factor())
-    # weight_menu.update(scale.get_weight())
+    # if ec11_encoder.rotary_decrease():
+    #     pass
+
+    # if ec11_encoder.button_pressed():
+    #     screen.clear()
+    #     screen.home()
+    #     screen.print("Please wait...")
+    #     scale.tare()
+    #     screen.print("Done")
+    #     ec11_encoder.btn_state = False
 
     main_page.display(screen)

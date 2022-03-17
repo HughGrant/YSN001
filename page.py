@@ -6,42 +6,49 @@ try:
 except ImportError:
     pass
 
-class Element:
-    def __init__(self, name: str, always_refresh: bool = False) -> None:
+class Item:
+    def __init__(
+        self,
+        name: str,
+        always_refresh: bool = False,
+        clickable: bool = False
+    ) -> None:
         self.name = name
-        self.value = None
+        self.min_val = 0
+        self.max_val = 0
+        self.val = None
         self.always_refresh = always_refresh
+        self.clickable = clickable
         self.update_func: Callable = None
+        self.next_page = None
+        self.prev_page = None
     
     def get(self) -> str:
         if self.update_func is None:
-            return "{} update_func error".format(self.name)
-        if self.value is None or self.always_refresh:
-            self.value = self.update_func()
-        return self.value
-
-class Row:
-    def __init__(self, name: str, eles: List[Element] = [], always_refresh: bool = False) -> None:
-        self.name = name
-        self.eles = eles
-        self.always_refresh = always_refresh
-        self.display_func = None
-
-    def display(self) -> None:
-        if self.display_func is None:
-            return "{} display_func error".format(self.name)
-        return self.display_func([ele.get() for ele in self.eles])
+            self.val = self.name
+        if self.val is None or self.always_refresh:
+            self.val = self.update_func()
+        return self.val
+    
+    def display(self, screen: Screen) -> None:
+        self.get()
+        screen.print(self.val)
      
 class Page:
-    def __init__(self, name: str, menus: List[Row] = []) -> None:
+    def __init__(self, name: str, items: List = []) -> None:
         self.name = name
-        self.rows: List[Row] = menus
+        self.items = items
         self.last_page = None
         self.next_page = None
 
     def display(self, screen: Screen) -> None:
-        for i, row in enumerate(self.rows):
-            if row.always_refresh:
-                screen.clear_row(i)
+        for i, item in enumerate(self.items):
             screen.set_cursor_pos(i, 0)
-            screen.print(row.display())
+            if isinstance(item, list):
+                for m in item:
+                    if isinstance(m, Item):
+                        m.display(screen)
+                    else:
+                        screen.print(m)
+            if isinstance(item, Item): 
+                item.display(screen)
