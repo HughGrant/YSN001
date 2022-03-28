@@ -42,17 +42,17 @@ max_cnt_item = Item(PARAS.MAX_CNT)
 max_cnt_item.update_func = lambda: "{}".format(rom.get(PARAS.MAX_CNT))
 
 # Main Page, Row 2, single menu jump to Setting Page
-setting_clickable = Item("SETTING", clickable=True)
+setting_link = Item("SETTING", linkable=True)
 
 # Main Page, Row 3, single menu jump to Calibrate Page
-calibrate_clickable = Item("CALIBRATE SCALE", clickable=True)
+calibrate_link = Item("CALIBRATE SCALE", linkable=True)
 
 # assemble Main Page
 main_page = Page("MAIN", [
     ["WEIGHT: ", unit_weight_item, "/", max_weight_item],
     ["COUNTER: ", current_cnt_item, "/", max_cnt_item],
-    setting_clickable,
-    calibrate_clickable 
+    setting_link,
+    calibrate_link,
 ])
 
 # Calibrate Page, Row 0, displaying raw value read from hx711 sensor
@@ -76,7 +76,7 @@ calibrate_page = Page("CALIBRATION", [
     ["FACTOR:", factor_item],
     ["WEIGHT:", unit_weight_item]
 ])
-calibrate_clickable.next_page = calibrate_page
+calibrate_link.page = calibrate_page
 
 # Config Page
 
@@ -86,11 +86,12 @@ config_page = Page("CONFIG", [
     "PLACE HOLDER 1",
     "PLACE HOLDER 2"
 ])
-setting_clickable.next_page = config_page
+setting_link.page = config_page
 
 #connecting pages via the elements
 
 # initial cursor position element
+current_page = None
 
 while True:
     # if ec11_encoder.rotary_increase():
@@ -106,5 +107,10 @@ while True:
     #     scale.tare()
     #     screen.print("Done")
     #     ec11_encoder.btn_state = False
+    if current_page is None:
+        current_page = main_page
+        screen.display(main_page)
+    else:
+        screen.display(current_page)
 
-    main_page.display(screen)
+    screen.cursor_blink()

@@ -4,6 +4,7 @@ from lib.lcd.lcd import CursorMode
 
 import busio, board, microcontroller
 
+from page import Item, Page
 try:
     from typing import Any
 except ImportError:
@@ -14,7 +15,7 @@ class Screen:
         self,
         scl: microcontroller.Pin,
         sda: microcontroller.Pin,
-        cols: int = 24,
+        cols: int = 20,
         rows: int = 4,
         address: str = 0x27
     ) -> None:
@@ -27,9 +28,27 @@ class Screen:
     def set_cursor_pos(self, row: int, col: int) -> None:
         self.lcd.set_cursor_pos(row, col)
     
-    def print(self, content: Any) -> None:
-        self.lcd.print(content)
-    
+    def display(self, page: Page) -> None:
+        if page.displayed:
+            return None
+        
+        for i, item in enumerate(page.items):
+            self.lcd.set_cursor_pos(i, 0)
+            if isinstance(item, list):
+                for m in item:
+                    if isinstance(m, Item):
+                        self.lcd.print(m.get())
+                    else:
+                        self.lcd.print(m)
+
+            if isinstance(item, Item): 
+                self.lcd.print(item.get())
+            
+            if isinstance(item, str):
+                self.lcd.print(item)
+            
+            page.displayed = True
+
     def clear(self) -> None:
         self.lcd.clear()
     
@@ -43,6 +62,7 @@ class Screen:
         self.lcd.set_cursor_mode(CursorMode.LINE)
 
     def cursor_blink(self) -> None:
+        self.lcd.set_cursor_pos(2, 0)
         self.lcd.set_cursor_mode(CursorMode.BLINK)
     
     def get_i2c_address(self) -> str:

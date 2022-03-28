@@ -284,6 +284,5 @@ class LCD(object):
             # At end of line: go to left side next row. Wrap around to first row if on last row.
             self._row = (self._row + 1) % self.num_rows
             self._col = 0
-
         self.set_cursor_pos(self._row, self._col)
 

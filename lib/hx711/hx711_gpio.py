@@ -66,11 +66,9 @@ class HX711:
         return self.get_value() / self.FACTOR
 
     def get_round_units(self) -> float:
-        weight =self.get_units()
+        weight = round(self.get_units(), 1)
         if weight < 0.0:
             weight = 0.0
-
-        weight = round(weight, 1)
         return weight
     
     def tare(self, times=15) -> None:
