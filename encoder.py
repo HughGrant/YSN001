@@ -12,8 +12,8 @@ class Encoder:
         self.btn.pull = digitalio.Pull.UP
         self.btn_state = False 
         # initialize button position
-        self.decrease_state = False
         self.increase_state = False
+        self.decrease_state = False
         self.last_pos = self.ec11.position
         self.counter = 0
     
@@ -24,19 +24,15 @@ class Encoder:
             return True
         return False
     
-    def posistion_changed(self, item: Item) -> int:
+    def posistion_changed(self) -> int:
         current_pos = self.ec11.position
         pos_change = current_pos - self.last_pos
         if pos_change > 0:
-            self.rotary_increase(item)
+            self.increase_state = True
+            self.decrease_state = False
 
         if pos_change < 0:
-            self.rotary_decrease(item)
+            self.increase_state = False 
+            self.decrease_state = True
 
         self.last_pos = current_pos
-
-    def rotary_increase(self, item: Item) -> None:
-        print('rotary increase')
-
-    def rotary_decrease(self, item: Item) -> None:
-        print('rotary decrease')

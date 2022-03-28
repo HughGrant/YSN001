@@ -28,26 +28,22 @@ class Screen:
     def set_cursor_pos(self, row: int, col: int) -> None:
         self.lcd.set_cursor_pos(row, col)
     
-    def display(self, page: Page) -> None:
-        if page.displayed:
-            return None
-        
-        for i, item in enumerate(page.items):
-            self.lcd.set_cursor_pos(i, 0)
-            if isinstance(item, list):
-                for m in item:
-                    if isinstance(m, Item):
-                        self.lcd.print(m.get())
-                    else:
-                        self.lcd.print(m)
+    def _display(self, item: Any) -> None:
+        if isinstance(item, Item): 
+            item.display(self.lcd)
 
-            if isinstance(item, Item): 
-                self.lcd.print(item.get())
-            
-            if isinstance(item, str):
-                self.lcd.print(item)
-            
-            page.displayed = True
+        if isinstance(item, str):
+            self.lcd.print(item)
+
+
+    def display(self, page: Page) -> None:
+        for i, row in enumerate(page.items):
+            self.lcd.set_cursor_pos(i, 0)
+            if isinstance(row, list):
+                for item in row:
+                    self._display(item)
+            else:
+                self._display(row)
 
     def clear(self) -> None:
         self.lcd.clear()
@@ -58,11 +54,8 @@ class Screen:
     def set_cursor_position(self, row: int, col: int) -> None:
         self.set_cursor_pos(row, col)
     
-    def cursor_line(self) -> None:
-        self.lcd.set_cursor_mode(CursorMode.LINE)
-
-    def cursor_blink(self) -> None:
-        self.lcd.set_cursor_pos(2, 0)
+    def cursor_blink(self, row: int = 0, col: int = 0) -> None:
+        self.lcd.set_cursor_pos(row, col)
         self.lcd.set_cursor_mode(CursorMode.BLINK)
     
     def get_i2c_address(self) -> str:

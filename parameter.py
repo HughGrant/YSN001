@@ -33,3 +33,6 @@ class Setting:
     def write(self) -> None:
         # only writes to the flash when needed
         nvm_helper.save_data(self.cache, False)
+    
+    def print_settings(self) -> None:
+        print(self.cache)

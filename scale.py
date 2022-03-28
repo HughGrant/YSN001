@@ -38,4 +38,4 @@ class Scale:
 
     def tare(self):
         self.hx.tare()
-        rom.save('OFFSET', self.hx.OFFSET)
+        self.rom.save('OFFSET', self.hx.OFFSET)

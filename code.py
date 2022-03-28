@@ -15,6 +15,7 @@ led.direction = digitalio.Direction.OUTPUT
 
 # initialize a Setting instance
 rom = PARAS.Setting()
+rom.print_settings()
 
 # initialize load cell
 scale = Scale(board.GP14, board.GP15, rom)
@@ -41,18 +42,16 @@ current_cnt_item.update_func = lambda: "{:05d}".format(rom.get(PARAS.CURRENT_CNT
 max_cnt_item = Item(PARAS.MAX_CNT)
 max_cnt_item.update_func = lambda: "{}".format(rom.get(PARAS.MAX_CNT))
 
-# Main Page, Row 2, single menu jump to Setting Page
-setting_link = Item("SETTING", linkable=True)
+# Main Page, Row 3, single menu jump to Setting Page
+setting_link = Item("PRESS TO SETTINGS", linkable=True)
 
-# Main Page, Row 3, single menu jump to Calibrate Page
-calibrate_link = Item("CALIBRATE SCALE", linkable=True)
 
 # assemble Main Page
 main_page = Page("MAIN", [
     ["WEIGHT: ", unit_weight_item, "/", max_weight_item],
     ["COUNTER: ", current_cnt_item, "/", max_cnt_item],
+    "",
     setting_link,
-    calibrate_link,
 ])
 
 # Calibrate Page, Row 0, displaying raw value read from hx711 sensor
@@ -76,41 +75,62 @@ calibrate_page = Page("CALIBRATION", [
     ["FACTOR:", factor_item],
     ["WEIGHT:", unit_weight_item]
 ])
-calibrate_link.page = calibrate_page
+
+# Config Page, Row 2, single menu jump to Calibrate Page
+calibrate_link = Item("CALIBRATE SCALE", linkable=True)
 
 # Config Page
-
 config_page = Page("CONFIG", [
     ["MAX WEIGHT: ", max_weight_item],
     ["MAX_COUNTER: ", max_cnt_item],
-    "PLACE HOLDER 1",
+    calibrate_link,
     "PLACE HOLDER 2"
 ])
-setting_link.page = config_page
 
 #connecting pages via the elements
+setting_link.page = config_page
+calibrate_link.page = calibrate_page
 
 # initial cursor position element
-current_page = None
+current_page = main_page
 
 while True:
-    # if ec11_encoder.rotary_increase():
-    #     pass
+    current_page.get_links()
+    crt_item_index = 0
+    crt_item_bound = len(current_page.links)   
+    cur_pos_x = current_page.links[crt_item_index].x
+    cur_pos_y = current_page.links[crt_item_index].y
 
-    # if ec11_encoder.rotary_decrease():
-    #     pass
 
-    # if ec11_encoder.button_pressed():
-    #     screen.clear()
-    #     screen.home()
-    #     screen.print("Please wait...")
-    #     scale.tare()
-    #     screen.print("Done")
-    #     ec11_encoder.btn_state = False
-    if current_page is None:
-        current_page = main_page
-        screen.display(main_page)
-    else:
-        screen.display(current_page)
+    if ec11_encoder.button_pressed():
 
-    screen.cursor_blink()
+        screen.clear()
+        # reset button state
+        ec11_encoder.btn_state = False
+
+    ec11_encoder.posistion_changed()
+
+    if ec11_encoder.increase_state:
+        if crt_item_index + 1 > crt_item_bound:
+            crt_item_bound = 0
+        else:
+            crt_item_index += 1
+        
+        # reset encoder increase state
+        ec11_encoder.increase_state = False
+
+    if ec11_encoder.decrease_state:
+        if crt_item_index - 1 < 0:
+            crt_item_bound = crt_item_bound
+        else:
+            crt_item_index -= 1
+        # reset encoder decrease state
+        ec11_encoder.decrease_state = False
+
+    # update current item in order to show correct blinking cursor
+    crt_item = current_page.links[crt_item_index]
+    # update current page in order to show correct
+    current_page = crt_item.page
+    # screen.display(current_page)
+    screen.cursor_blink(crt_item.x, crt_item.y)
+    
