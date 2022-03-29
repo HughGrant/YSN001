@@ -21,33 +21,36 @@ class Item:
         self.x = 0
         self.y = 0
         self.update_func: Callable = None
-        self.page = None
+        self.page: Page = None
     
-    def get(self) -> str:
-        if not self.update_func is None:
-            self.val = self.update_func()
-        if self.linkable:
-            self.val = self.name
-        return self.val
-
-    def display(self, lcd: LCD):
+    def set_item_pos(self, x: int, y: int) -> None:
+        self.x = x
+        self.y = y
+    
+    def __str__(self) -> str:
         if self.always_refresh or self.val is None:
-            self.x, self.y = lcd.cursor_pos()
-            self.get()
-            lcd.print(self.val)
+            self.val = self.update_func()
+        else:
+            self.val = self.name
+
+        return self.val
+    
+        
 
     def __repr__(self) -> str:
         return "Item: {}, linkable: {}".format(self.name, self.linkable)
     
     
 class Page:
-    def __init__(self, name: str, items: List = []) -> None:
+    def __init__(self, name: str, items: List = [], need_cursor: bool = False) -> None:
         self.name = name
         self.items = items
-        self.is_current = False
+        self.need_cursor = need_cursor
         self.links: list[Item] = []
+
+        self.drawed = False
     
-    def get_links(self):
+    def get_links(self) -> list[Item]:
         if len(self.links) > 0:
             return self.links
 
@@ -60,7 +63,6 @@ class Page:
             if isinstance(row, Item):
                 if row.linkable:
                     self.links.append(row)
-        print(self.links)
         return self.links
 
     

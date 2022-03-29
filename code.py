@@ -6,6 +6,7 @@ from encoder import Encoder
 from screen import Screen
 from scale import Scale
 from page import Page, Item
+from controller import Controller
 
 import parameter as PARAS
 
@@ -25,8 +26,6 @@ ec11_encoder = Encoder(board.GP4, board.GP3, board.GP2)
 
 # initialize lcd screen
 screen = Screen(board.GP1, board.GP0)
-
-
 
 # Main Page, Row 0, displaying current_weight/max_weight
 unit_weight_item = Item("READ_WEIGHT", always_refresh=True)
@@ -79,58 +78,58 @@ calibrate_page = Page("CALIBRATION", [
 # Config Page, Row 2, single menu jump to Calibrate Page
 calibrate_link = Item("CALIBRATE SCALE", linkable=True)
 
+weight_link = Item("MAX WEIGHT", linkable=True)
+counter_link = Item("MAX COUNTER", linkable=True)
+
+return_link = Item("RETURN", linkable=True)
 # Config Page
 config_page = Page("CONFIG", [
-    ["MAX WEIGHT: ", max_weight_item],
-    ["MAX_COUNTER: ", max_cnt_item],
-    calibrate_link,
-    "PLACE HOLDER 2"
-])
+    ["1. ", weight_link],
+    ["2. ", counter_link],
+    ["3. ", calibrate_link],
+    ["   ", return_link]
+], need_cursor=True)
+
+# Weight Setting Page
+weight_setting_page = Page("WEIGHT SETTING", [
+    ["CURRENT SETTING VALUE"]
+], need_cursor=True)
 
 #connecting pages via the elements
 setting_link.page = config_page
 calibrate_link.page = calibrate_page
+weight_link.page = weight_setting_page
 
 # initial cursor position element
-current_page = main_page
+controller = Controller(main_page)
+crt_page = return_link.page = main_page
+crt_item = setting_link
 
 while True:
-    current_page.get_links()
-    crt_item_index = 0
-    crt_item_bound = len(current_page.links)   
-    cur_pos_x = current_page.links[crt_item_index].x
-    cur_pos_y = current_page.links[crt_item_index].y
-
 
     if ec11_encoder.button_pressed():
-
+        # update current page in order to show correct
+        crt_page = controller.change_page()
+        crt_item = controller.crt_item
         screen.clear()
+        
         # reset button state
         ec11_encoder.btn_state = False
 
     ec11_encoder.posistion_changed()
 
     if ec11_encoder.increase_state:
-        if crt_item_index + 1 > crt_item_bound:
-            crt_item_bound = 0
-        else:
-            crt_item_index += 1
-        
+        crt_item = controller.move_next_item()
         # reset encoder increase state
         ec11_encoder.increase_state = False
 
     if ec11_encoder.decrease_state:
-        if crt_item_index - 1 < 0:
-            crt_item_bound = crt_item_bound
-        else:
-            crt_item_index -= 1
+        crt_item = controller.move_prev_item() 
         # reset encoder decrease state
         ec11_encoder.decrease_state = False
 
     # update current item in order to show correct blinking cursor
-    crt_item = current_page.links[crt_item_index]
-    # update current page in order to show correct
-    current_page = crt_item.page
-    # screen.display(current_page)
+
+    screen.draw(crt_page)
     screen.cursor_blink(crt_item.x, crt_item.y)
-    
+    time.sleep(0.2) 

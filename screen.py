@@ -25,25 +25,14 @@ class Screen:
         i2c = busio.I2C(scl, sda)
         self.lcd = LCD(I2CPCF8574Interface(i2c, address), cols, rows)
     
-    def set_cursor_pos(self, row: int, col: int) -> None:
-        self.lcd.set_cursor_pos(row, col)
-    
-    def _display(self, item: Any) -> None:
-        if isinstance(item, Item): 
-            item.display(self.lcd)
-
-        if isinstance(item, str):
-            self.lcd.print(item)
-
-
-    def display(self, page: Page) -> None:
+    def draw(self, page: Page) -> None:
         for i, row in enumerate(page.items):
             self.lcd.set_cursor_pos(i, 0)
             if isinstance(row, list):
                 for item in row:
-                    self._display(item)
+                    self.lcd.print(str(item))
             else:
-                self._display(row)
+                self.lcd.print(str(row))
 
     def clear(self) -> None:
         self.lcd.clear()
