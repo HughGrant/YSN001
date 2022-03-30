@@ -1,5 +1,5 @@
 import digitalio, rotaryio, board
-from page import Item
+from item import Item
 
 class Encoder:
     def __init__(self, channelA, channelB, button) -> None:

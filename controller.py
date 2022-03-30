@@ -1,33 +1,33 @@
-from page import Item, Page
+from item import Item
 
 class Controller:
-    def __init__(self, page: Page) -> None:
+    def __init__(self, page: list[list]) -> None:
         self.page = page
-        self.init_controll()
+        self.index: int = 0
+        self.links: list[Item] = None
+        self.refresh_items: list[Item] = None
+        self.link: Item = None
+        self.make_links()
     
-    def move_next_item(self) -> Item:
-        # print("self.crt_index:", self.index, "self.crt_bound:", self.bound)
+    def make_links(self) -> None:
+        items = [item for rows in self.page for item in rows if isinstance(item, Item)]
+        self.links = [item for item in items if not item.link is None]
+        self.refresh_items = [item for item in items if item.need_refresh]
+        self.index = 0
+        self.link = self.links[self.index]
+    
+    def move_next_link(self) -> None:
         self.index += 1
-        if self.index >= self.bound:
+        if self.index >= len(self.links):
             self.index = 0
-        return self.links[self.index]
+        self.link = self.links[self.index]
 
-    def move_prev_item(self) -> Item:
-        # print("self.crt_index:", self.index, "self.crt_bound:", self.bound)
+    def move_prev_link(self) -> None:
         self.index -= 1
         if self.index < 0:
-            self.index = self.bound - 1
-        return self.links[self.index]
+            self.index = len(self.links) - 1
+        self.link = self.links[self.index]
 
-    def change_page(self) -> Page:
-        self.page = self.links[self.index].page
-        self.init_controll()
-        return self.page
-
-    def init_controll(self) -> None:
-        # get all links and reconfig this controller with the new page
-        self.page.get_links()
-        self.index = 0
-        self.links = self.page.links
-        self.bound = len(self.links)
-        self.crt_item = self.links[0]
+    def change_page(self) -> None:
+        self.page = self.link.link
+        self.make_links()

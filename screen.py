@@ -4,7 +4,7 @@ from lib.lcd.lcd import CursorMode
 
 import busio, board, microcontroller
 
-from page import Item, Page
+from item import Item
 try:
     from typing import Any
 except ImportError:
@@ -25,14 +25,16 @@ class Screen:
         i2c = busio.I2C(scl, sda)
         self.lcd = LCD(I2CPCF8574Interface(i2c, address), cols, rows)
     
-    def draw(self, page: Page) -> None:
-        for i, row in enumerate(page.items):
+    def show(self, items: list[list]) -> None:
+        for i, row in enumerate(items):
             self.lcd.set_cursor_pos(i, 0)
-            if isinstance(row, list):
-                for item in row:
-                    self.lcd.print(str(item))
-            else:
-                self.lcd.print(str(row))
+            for item in row:
+                self.lcd.print(str(item))
+    
+    def partial_show(self, dynamic_items: list[Item]) -> None:
+        for item in dynamic_items:
+            self.lcd.set_cursor_pos(item.x, item.y)
+            self.lcd.print(str(item))
 
     def clear(self) -> None:
         self.lcd.clear()
@@ -46,7 +48,10 @@ class Screen:
     def cursor_blink(self, row: int = 0, col: int = 0) -> None:
         self.lcd.set_cursor_pos(row, col)
         self.lcd.set_cursor_mode(CursorMode.BLINK)
-    
+
+    def cursor_hide(self) -> None:
+        self.lcd.set_cursor_mode(CursorMode.HIDE) 
+
     def get_i2c_address(self) -> str:
         while not self.i2c.try_lock():
             print("i2c tring to get the lock, please wait")
