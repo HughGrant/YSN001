@@ -78,24 +78,45 @@ calibrate_page = [
 weight_link = Item("MAX WEIGHT", x=0, y=0, need_cursor=True)
 counter_link = Item("MAX COUNTER", x=1, y=0, need_cursor=True)
 calibrate_link = Item("CALIBRATE SCALE", x=2, y=0, need_cursor=True)
-return_link = Item("RETURN", x=3, y=0, need_cursor=True)
+setting_return_link = Item("RETURN", x=3, y=0, need_cursor=True)
 # Config Page
 setting_page = [
     ["1. ", weight_link],
     ["2. ", counter_link],
     ["3. ", calibrate_link],
-    ["4. ", return_link]
+    ["4. ", setting_return_link]
 ]
 
+# Counter Page
+cnt_config_item = Item(
+    "CNT_CONFIG", 
+    x = 0, 
+    y = 0, 
+    is_config = True,
+    need_refresh = True,
+    need_cursor = True,
+    config_val = rom.get(PARAS.MAX_CNT),
+    max_display_val = rom.get(PARAS.MAX_DISPLAY_CNT),
+    min_display_val = 1,
+    step = 1
+)
+
+counter_config_page = [
+    [cnt_config_item],
+    ["RANGE: ", cnt_config_item.min_display_val, "-", cnt_config_item.max_display_val],
+    ["ROATE TO CHANGE"],
+    ["PRESS TO SAVE"]
+]
 #connecting pages via the elements
-setting_link.link = setting_page
-calibrate_link.link = calibrate_page
+setting_link.page = setting_page
+calibrate_link.page = calibrate_page
 
-weight_link.link = entry_page
-counter_link.link = entry_page
-return_link.link = entry_page
+weight_link.page = entry_page
+counter_link.page = counter_config_page
+setting_return_link.page = entry_page
 
-calibrate_save_link.link = entry_page
+calibrate_save_link.page = entry_page
+cnt_config_item.page = entry_page
 
 # initial setup for the controller
 controller = Controller(entry_page)
@@ -105,28 +126,33 @@ while True:
     # handle encoder button press event
     if ec11_encoder.button_pressed():
         # update current page in order to show correct
-        controller.change_page()
+        controller.link_pressed()
         screen.clear()
-        screen.show(controller.page)
+        screen.show(controller.crt_page)
         # reset button state
         ec11_encoder.btn_state = False
 
     ec11_encoder.posistion_changed()
 
     if ec11_encoder.increase_state:
-        controller.move_next_link()
+        if controller.crt_item.is_config:
+            controller.increase_setting()
+        else:
+            controller.move_next_link()
         # reset encoder increase state
         ec11_encoder.increase_state = False
 
     if ec11_encoder.decrease_state:
-        controller.move_prev_link() 
+        if controller.crt_item.is_config:
+            controller.decrease_setting()
+        else:
+            controller.move_prev_link() 
         # reset encoder decrease state
         ec11_encoder.decrease_state = False
 
     # update current item in order to show correct blinking cursor
     screen.partial_show(controller.refresh_items)
-    if controller.link.need_cursor:
-        print(f"link name: {controller.link.name}")
-        screen.cursor_blink(controller.link.x, controller.link.y)
+    if controller.crt_item.need_cursor:
+        screen.cursor_blink(controller.crt_item.x, controller.crt_item.y)
     else:
         screen.cursor_hide()

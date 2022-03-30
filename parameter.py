@@ -11,6 +11,7 @@ FACTOR = 'FACTOR'
 MAX_WEIGHT = 'MAX_WEIGHT'
 CURRENT_CNT = 'CURRENT_CNT'
 MAX_CNT = 'MAX_CNT'
+MAX_DISPLAY_CNT = "MAX_DISPLAY_CNT"
 
 class Setting:
     def __init__(self) -> None:
@@ -20,6 +21,7 @@ class Setting:
             MAX_WEIGHT: 500,
             CURRENT_CNT: 0,
             MAX_CNT: 99999,
+            MAX_DISPLAY_CNT: 99999,
         }
         self.cache = nvm_helper.read_data()
 
