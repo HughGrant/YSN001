@@ -2,13 +2,9 @@ from lib.lcd.lcd import LCD
 from lib.lcd.i2c_pcf8574_interface import I2CPCF8574Interface
 from lib.lcd.lcd import CursorMode
 
-import busio, board, microcontroller
+import busio, microcontroller
 
-from item import Item
-try:
-    from typing import Any
-except ImportError:
-    pass
+from link import Link
 
 class Screen:
     def __init__(
@@ -17,40 +13,31 @@ class Screen:
         sda: microcontroller.Pin,
         cols: int = 20,
         rows: int = 4,
-        address: str = 0x27
+        address: str = 0x27,
     ) -> None:
         self.max_cols = cols
         self.max_rows = rows
         # setup i2c for lcd display
         i2c = busio.I2C(scl, sda)
         self.lcd = LCD(I2CPCF8574Interface(i2c, address), cols, rows)
-    
+
     def show(self, items: list[list]) -> None:
         for i, row in enumerate(items):
             self.lcd.set_cursor_pos(i, 0)
             for item in row:
                 self.lcd.print(str(item))
-    
-    def partial_show(self, dynamic_items: list[Item]) -> None:
+
+    def partial_show(self, dynamic_items: list[Link]) -> None:
         for item in dynamic_items:
             self.lcd.set_cursor_pos(item.x, item.y)
             self.lcd.print(str(item))
 
-    def clear(self) -> None:
-        self.lcd.clear()
-    
-    def home(self) -> None:
-        self.lcd.home()
-    
-    def set_cursor_position(self, row: int, col: int) -> None:
-        self.set_cursor_pos(row, col)
-    
     def cursor_blink(self, row: int = 0, col: int = 0) -> None:
         self.lcd.set_cursor_pos(row, col)
         self.lcd.set_cursor_mode(CursorMode.BLINK)
 
     def cursor_hide(self) -> None:
-        self.lcd.set_cursor_mode(CursorMode.HIDE) 
+        self.lcd.set_cursor_mode(CursorMode.HIDE)
 
     def get_i2c_address(self) -> str:
         while not self.i2c.try_lock():
