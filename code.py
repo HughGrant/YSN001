@@ -9,7 +9,7 @@ from link import Link
 from controller import Controller
 from x9c import X9C
 
-import parameter as PARAS
+import parameter as ps
 
 
 # setup board led
@@ -17,7 +17,7 @@ led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
 # initialize a Setting instance
-rom = PARAS.Setting()
+rom = ps.Setting()
 rom.print_settings()
 
 # initialize load cell
@@ -36,15 +36,15 @@ shared_return_link = Link("RETURN TO MAIN", type="FUNC")
 unit_weight_item = Link("READ_WEIGHT", need_refresh=True)
 unit_weight_item.update_func = lambda: "{:>6}".format(scale.get_weight())
 
-max_weight_item = Link(PARAS.MAX_WEIGHT)
-max_weight_item.update_func = lambda: "{:.1f}".format(rom.get(PARAS.MAX_WEIGHT))
+max_weight_item = Link(ps.MAX_WEIGHT)
+max_weight_item.update_func = lambda: "{:.1f}".format(rom.get(ps.MAX_WEIGHT))
 
 # Main Page, Row 1, displaying current_cnt/max_cnt
-current_cnt_item = Link(PARAS.CURRENT_CNT)
-current_cnt_item.update_func = lambda: "{:05d}".format(rom.get(PARAS.CURRENT_CNT))
+current_cnt_item = Link(ps.CURRENT_CNT)
+current_cnt_item.update_func = lambda: "{:05d}".format(rom.get(ps.CURRENT_CNT))
 
-max_cnt_item = Link(PARAS.MAX_CNT)
-max_cnt_item.update_func = lambda: "{}".format(rom.get(PARAS.MAX_CNT))
+max_cnt_item = Link(ps.MAX_CNT)
+max_cnt_item.update_func = lambda: "{}".format(rom.get(ps.MAX_CNT))
 
 # Main Page, Row 3, single menu jump to Setting Page
 enter_config_link = Link("PRESS KNOB TO CONFIG", type="FUNC")
@@ -105,8 +105,8 @@ config_page = [
 
 # Counter Page
 cnt_config_item = Link("CNT_CONFIG", type="CONF")
-cnt_config_item.config_val = rom.get(PARAS.MAX_CNT)
-cnt_config_item.max_display_val = rom.get(PARAS.MAX_DISPLAY_CNT)
+cnt_config_item.config_val = rom.get(ps.MAX_CNT)
+cnt_config_item.max_display_val = rom.get(ps.MAX_DISPLAY_CNT)
 cnt_config_item.min_display_val = 1
 
 cnt_save_link = Link("SAVE", type="FUNC")
@@ -147,15 +147,7 @@ a0 = analogio.AnalogIn(board.A0)
 x9c = X9C(cs=board.GP22, inc=board.GP21, ud=board.GP20)
 
 while True:
-    print(
-        "value: ",
-        a0.value,
-        " voltage: ",
-        (a0.value * a0.reference_voltage) / 65536,
-        " step: ",
-        x9c.crt_step,
-    )
-    # print("voltage:", (a0.value * 3.3) / 65536)
+    print("value: ", a0.value, " voltage: ", (a0.value * a0.reference_voltage) / 65536)
     time.sleep(0.1)
     # handle encoder button press event
     if ec11_encoder.button_pressed():
@@ -171,13 +163,13 @@ while True:
     ec11_encoder.posistion_changed()
 
     if ec11_encoder.increase_state:
-        x9c.trim_pot(66, True)
+        x9c.wiper_up(10)
         controller.knob_increase()
         # reset encoder increase state
         ec11_encoder.increase_state = False
 
     if ec11_encoder.decrease_state:
-        x9c.trim_pot(0, True)
+        x9c.wiper_save()
         controller.knob_decrease()
         # reset encoder decrease state
         ec11_encoder.decrease_state = False

@@ -3,59 +3,51 @@ from microcontroller import Pin
 
 
 class X9C:
-    def __init__(
-        self, cs: Pin = None, inc: Pin = None, ud: Pin = None, max_step: int = 99
-    ) -> None:
-        self.cs = digitalio.DigitalInOut(cs)  # chip select
-        self.inc = digitalio.DigitalInOut(inc)  # increase
-        self.ud = digitalio.DigitalInOut(ud)  # up or down
+    def __init__(self, cs: Pin = None, inc: Pin = None, ud: Pin = None) -> None:
+        self._cs = digitalio.DigitalInOut(cs)  # chip select
+        self._inc = digitalio.DigitalInOut(inc)  # increase
+        self._ud = digitalio.DigitalInOut(ud)  # up or down
 
-        self.cs.direction = digitalio.Direction.OUTPUT
-        self.inc.direction = digitalio.Direction.OUTPUT
-        self.ud.direction = digitalio.Direction.OUTPUT
+        self._cs.direction = digitalio.Direction.OUTPUT
+        self._inc.direction = digitalio.Direction.OUTPUT
+        self._ud.direction = digitalio.Direction.OUTPUT
 
-        self.max_step = max_step
-        self.crt_step = 0
-        self.min_pot(True)
+        self.max_step = 99
+        self.min_pot()
 
-    def deselect_with_saving(self) -> None:
-        self.cs.value = True
-
-    def deselect_without_saving(self) -> None:
-        self.inc.value = False
-        self.cs.value = True
-        self.inc.value = True
-
-    def _save(self, saving: bool) -> None:
-        if saving:
-            self.deselect_with_saving()
-        else:
-            self.deselect_without_saving()
+    def wiper_save(self) -> None:
+        # chip select, stand by
+        self._cs.value = True
 
     def _move_wiper(self, steps: int, direction: bool) -> None:
+        # set u/d direction
+        self._ud.value = direction
+        # time.sleep(0.003)
+        self._cs.value = False
+
+        # u/d direction means wiper up or down
         cnt = self.max_step if steps > self.max_step else steps
-        self.ud.value = direction
-        self.cs.value = False
+        # toggle pin inc to move the wiper
         for _ in range(cnt):
-            self.inc.value = False
+            self._inc.value = True
             time.sleep(0.001)
-            self.inc.value = True
+            self._inc.value = False
             time.sleep(0.001)
 
-        time.sleep(0.1)
+        self._inc.value = True
 
-    def trim_pot(self, steps: int, saving: bool = False) -> None:
-        self.crt_step = steps
-        self._move_wiper(self.max_step + 1, False)
-        self._move_wiper(steps, True)
-        self._save(saving)
-
-    def max_pot(self, saving: bool = False) -> None:
-        self.crt_step = self.max_step
+    def max_pot(self) -> None:
         self._move_wiper(self.max_step + 1, True)
-        self._save(saving)
 
-    def min_pot(self, saving: bool) -> None:
-        self.crt_step = 0
+    def min_pot(self) -> None:
         self._move_wiper(self.max_step + 1, False)
-        self._save(saving)
+
+    def wiper_up(self, steps: int) -> None:
+        self._move_wiper(steps, True)
+
+    def wiper_down(self, steps: int) -> None:
+        self._move_wiper(steps, False)
+
+    def wiper_to(self, steps: int) -> None:
+        self.min_pot()
+        self._move_wiper(steps, True)
