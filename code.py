@@ -1,6 +1,8 @@
 import board, digitalio, analogio
 import time
 
+from lib.adafruit_debouncer import Debouncer
+
 # import my modules here
 from encoder import Encoder
 from screen import Screen
@@ -9,7 +11,13 @@ from link import Link
 from controller import Controller
 from x9c import X9C
 
-import parameter as ps
+import parameter as PS
+
+# setup buttons
+start_btn_pin = digitalio.DigitalInOut(board.GP16)
+start_btn_pin.direction = digitalio.Direction.INPUT
+start_btn_pin.pull = digitalio.Pull.UP
+start_btn = Debouncer(start_btn_pin)
 
 
 # setup board led
@@ -17,43 +25,55 @@ led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
 # initialize a Setting instance
-rom = ps.Setting()
+rom = PS.Setting()
 rom.print_settings()
 
 # initialize load cell
 scale = Scale(board.GP14, board.GP15, rom)
 
 # initialize ec11 encoder
-ec11_encoder = Encoder(board.GP4, board.GP3, board.GP2)
+ec11 = Encoder(board.GP4, board.GP3, board.GP2)
 
 # initialize lcd screen
 screen = Screen(board.GP1, board.GP0)
 
-# shared return link
-shared_return_link = Link("RETURN TO MAIN", type="FUNC")
+# define a fine for lambda usage
+def goto(page):
+    controller.crt_page = page
+    controller.gather_links()
+    screen.lcd.clear()
+    screen.display(page)
 
-# Main Page, Row 0, displaying current_weight/max_weight
-unit_weight_item = Link("READ_WEIGHT", need_refresh=True)
+
+# shared return link
+shared_return_link = Link("RETURN TO MAIN")
+# TODO: whenever returned back to main page, we should update the corresponding text
+shared_return_link.press_func = lambda: goto(entry_page)
+
+# Main Page, Row 1, displaying current_weight/max_weight
+unit_weight_item = Link("READ_WEIGHT")
 unit_weight_item.update_func = lambda: "{:>6}".format(scale.get_weight())
 
-max_weight_item = Link(ps.MAX_WEIGHT)
-max_weight_item.update_func = lambda: "{:.1f}".format(rom.get(ps.MAX_WEIGHT))
+max_weight_item = Link(PS.MAX_WEIGHT)
+max_weight_item.update_func = lambda: "{:.1f}".format(rom.get(PS.MAX_WEIGHT))
 
-# Main Page, Row 1, displaying current_cnt/max_cnt
-current_cnt_item = Link(ps.CURRENT_CNT)
-current_cnt_item.update_func = lambda: "{:05d}".format(rom.get(ps.CURRENT_CNT))
+# Main Page, Row 2, displaying current_cnt/max_cnt
+current_cnt_item = Link(PS.CURRENT_CNT)
+current_cnt_item.update_func = lambda: "{:05d}".format(rom.get(PS.CURRENT_CNT))
 
-max_cnt_item = Link(ps.MAX_CNT)
-max_cnt_item.update_func = lambda: "{}".format(rom.get(ps.MAX_CNT))
+max_cnt_item = Link(PS.MAX_CNT)
+max_cnt_item.update_func = lambda: "{}".format(rom.get(PS.MAX_CNT))
 
-# Main Page, Row 3, single menu jump to Setting Page
-enter_config_link = Link("PRESS KNOB TO CONFIG", type="FUNC")
+# Main Page, Row 3, progress bar
+filling_process_bar = ["-" * screen.max_cols]
+# Main Page, Row 4, single menu jump to Setting Page
+enter_config_link = Link("PRESS KNOB TO CONFIG")
+enter_config_link.press_func = lambda: goto(config_page)
 
-# Main Page
 entry_page = [
-    ["WEIGHT: ", unit_weight_item, "/", max_weight_item],
-    ["COUNTER: ", current_cnt_item, "/", max_cnt_item],
-    ["-" * screen.max_cols],
+    ["WEIGHT: ", str(unit_weight_item), "/", str(max_weight_item)],
+    ["COUNTER: ", str(current_cnt_item), "/", str(max_cnt_item)],
+    filling_process_bar,
     [enter_config_link],
 ]
 
@@ -79,10 +99,10 @@ calibration_page = [
     [calibrate_save_link],
 ]
 
-tare_item = Link("TARE", type="FUNC")
+tare_item = Link("TARE")
 tare_item.press_func = lambda: print("taring done!!!")
 
-calibration_item = Link("CALIBRATION", type="FUNC")
+calibration_item = Link("CALIBRATION")
 
 scale_page = [
     ["1. ", tare_item],
@@ -92,9 +112,9 @@ scale_page = [
 ]
 
 # Config Page
-weight_link = Link("MAX WEIGHT", type="FUNC")
-counter_link = Link("MAX COUNTER", type="FUNC")
-scale_link = Link("SCALE SETTINGS", type="FUNC")
+weight_link = Link("MAX WEIGHT")
+counter_link = Link("MAX COUNTER")
+scale_link = Link("SCALE SETTINGS")
 # Config Page
 config_page = [
     ["1. ", weight_link],
@@ -104,17 +124,36 @@ config_page = [
 ]
 
 # Counter Page
-cnt_config_item = Link("CNT_CONFIG", type="CONF")
-cnt_config_item.config_val = rom.get(ps.MAX_CNT)
-cnt_config_item.max_display_val = rom.get(ps.MAX_DISPLAY_CNT)
+cnt_crt_value = rom.get(PS.MAX_CNT)
+cnt_config_item = Link(cnt_crt_value)
+cnt_config_item.config_val = cnt_crt_value
+cnt_config_item.max_display_val = rom.get(PS.MAX_DISPLAY_CNT)
 cnt_config_item.min_display_val = 1
 
-cnt_save_link = Link("SAVE", type="FUNC")
-cnt_reset_link = Link("RESET", type="FUNC")
+
+def generate_num_link(num: int) -> Link:
+    num_link = Link("NUM_PADS_" + str(num))
+    num_link.config_val = num
+    num_link.press_func = lambda: num
+    return num_link
+
+
+# reusable number pads
+num_pads = [generate_num_link(x) for x in range(10)]
+num_pads_with_seperator = []
+for num in num_pads:
+    num_pads_with_seperator.append(num)
+    num_pads_with_seperator.append("|")
+
+cnt_save_link = Link("SAVE")
+cnt_reset_link = Link("RESET")
+cnt_save_link.press_func = lambda: print("saved")
+cnt_reset_link.press_func = lambda: print("reset")
+
 counter_config_page = [
     [cnt_config_item],
     ["RANGE: ", cnt_config_item.min_display_val, "-", cnt_config_item.max_display_val],
-    ["1|2|3|4|5|6|7|8|9|0"],
+    num_pads_with_seperator,
     [cnt_reset_link, " ", cnt_save_link],
 ]
 
@@ -123,58 +162,49 @@ weight_link.page = entry_page
 calibrate_save_link.page = entry_page
 cnt_config_item.page = entry_page
 
-# initial setup for the controller
+# avoid to display the whole page in the while loop
+# it will slow the program very much
 controller = Controller(entry_page)
-screen.show(entry_page)
 
+screen.display(controller.crt_page)
 
-def goto(page):
-    controller.crt_page = page
-    controller.gather_links()
-
-
-enter_config_link.press_func = lambda: goto(config_page)
 scale_link.press_func = lambda: goto(scale_page)
 counter_link.press_func = lambda: goto(counter_config_page)
-shared_return_link.press_func = lambda: goto(entry_page)
 
-
-cnt_save_link.press_func = lambda: print("saved")
-cnt_reset_link.press_func = lambda: print("reset")
 
 # setup digital pot x9c
 a0 = analogio.AnalogIn(board.A0)
 x9c = X9C(cs=board.GP22, inc=board.GP21, ud=board.GP20)
 
-while True:
-    print("value: ", a0.value, " voltage: ", (a0.value * a0.reference_voltage) / 65536)
-    time.sleep(0.1)
-    # handle encoder button press event
-    if ec11_encoder.button_pressed():
-        # update current page in order to show correct
+WORKING_MODE = False
+CONFIG_MODE = True
+
+while CONFIG_MODE:
+    # constantly update states here
+    start_btn.update()
+    ec11.update()
+
+    if start_btn.fell:
+        print("just pressed start btn")
+
+    if ec11.btn.fell:
         controller.knob_press()
-        if len(controller.refresh_items) >= 1:
-            screen.cursor_hide()
-        screen.lcd.clear()
-        screen.show(controller.crt_page)
-        # reset button state
-        ec11_encoder.btn_state = False
 
-    ec11_encoder.posistion_changed()
+    if ec11.increase:
+        controller.move_next_link()
 
-    if ec11_encoder.increase_state:
-        x9c.wiper_up(10)
-        controller.knob_increase()
-        # reset encoder increase state
-        ec11_encoder.increase_state = False
-
-    if ec11_encoder.decrease_state:
-        x9c.wiper_save()
-        controller.knob_decrease()
-        # reset encoder decrease state
-        ec11_encoder.decrease_state = False
+    if ec11.decrease:
+        controller.move_prev_link()
 
     # show correct blinking cursor
-    screen.partial_show(controller.refresh_items)
-    if len(controller.refresh_items) == 0:
-        screen.cursor_blink(controller.crt_item.x, controller.crt_item.y)
+    if len(controller.links) > 1:
+        screen.cursor_pos(controller.crt_link.x, controller.crt_link.y)
+        time.sleep(0.001)
+    else:
+        screen.cursor_hide()
+
+    # TODO: should we update the read weight here constantly
+
+
+while WORKING_MODE:
+    print("working mode now")
