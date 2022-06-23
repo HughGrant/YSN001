@@ -19,7 +19,6 @@ start_btn_pin.direction = digitalio.Direction.INPUT
 start_btn_pin.pull = digitalio.Pull.UP
 start_btn = Debouncer(start_btn_pin)
 
-
 # setup board led
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
@@ -29,6 +28,8 @@ rom = PS.Setting()
 rom.print_settings()
 
 # initialize load cell
+pin_data = board.D5
+pin_clk = board.D6
 scale = Scale(board.GP14, board.GP15, rom)
 
 # initialize ec11 encoder
@@ -36,6 +37,7 @@ ec11 = Encoder(board.GP4, board.GP3, board.GP2)
 
 # initialize lcd screen
 screen = Screen(board.GP1, board.GP0)
+
 
 # define a fine for lambda usage
 def goto(page):
@@ -71,8 +73,10 @@ enter_config_link = Link("PRESS KNOB TO CONFIG")
 enter_config_link.press_func = lambda: goto(config_page)
 
 entry_page = [
-    ["WEIGHT: ", str(unit_weight_item), "/", str(max_weight_item)],
-    ["COUNTER: ", str(current_cnt_item), "/", str(max_cnt_item)],
+    ["WEIGHT: ", str(unit_weight_item), "/",
+     str(max_weight_item)],
+    ["COUNTER: ", str(current_cnt_item), "/",
+     str(max_cnt_item)],
     filling_process_bar,
     [enter_config_link],
 ]
@@ -86,7 +90,7 @@ offset_item = Link("OFFSET")
 offset_item.update_func = lambda: scale.get_offset()
 
 # Calibrate Page, Row 2, displaying factor
-factor_item = Link("FACTOR")
+factor_item = Link("SCALAR")
 factor_item.update_func = lambda: scale.get_factor()
 
 # Calibrate Page, Row 3, displaying current weight
@@ -95,7 +99,7 @@ calibrate_save_link = Link("SAVE AND EXIT")
 calibration_page = [
     ["RAW VALUE:", raw_value_item],
     ["OFFSET:", offset_item],
-    ["FACTOR:", factor_item],
+    ["SCALAR:", factor_item],
     [calibrate_save_link],
 ]
 
@@ -152,7 +156,10 @@ cnt_reset_link.press_func = lambda: print("reset")
 
 counter_config_page = [
     [cnt_config_item],
-    ["RANGE: ", cnt_config_item.min_display_val, "-", cnt_config_item.max_display_val],
+    [
+        "RANGE: ", cnt_config_item.min_display_val, "-",
+        cnt_config_item.max_display_val
+    ],
     num_pads_with_seperator,
     [cnt_reset_link, " ", cnt_save_link],
 ]
@@ -170,7 +177,6 @@ screen.display(controller.crt_page)
 
 scale_link.press_func = lambda: goto(scale_page)
 counter_link.press_func = lambda: goto(counter_config_page)
-
 
 # setup digital pot x9c
 a0 = analogio.AnalogIn(board.A0)
@@ -204,7 +210,6 @@ while CONFIG_MODE:
         screen.cursor_hide()
 
     # TODO: should we update the read weight here constantly
-
 
 while WORKING_MODE:
     print("working mode now")
