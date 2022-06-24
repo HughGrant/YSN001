@@ -28,9 +28,7 @@ rom = PS.Setting()
 rom.print_settings()
 
 # initialize load cell
-pin_data = board.D5
-pin_clk = board.D6
-scale = Scale(board.GP14, board.GP15, rom)
+scale = Scale(pin_data=board.GP14, pin_clk=board.GP15, rom=rom)
 
 # initialize ec11 encoder
 ec11 = Encoder(board.GP4, board.GP3, board.GP2)
@@ -54,7 +52,7 @@ shared_return_link.press_func = lambda: goto(entry_page)
 
 # Main Page, Row 1, displaying current_weight/max_weight
 unit_weight_item = Link("READ_WEIGHT")
-unit_weight_item.update_func = lambda: "{:>6}".format(scale.get_weight())
+unit_weight_item.update_func = lambda: "{:>6}".format(scale.hx.read_average())
 
 max_weight_item = Link(PS.MAX_WEIGHT)
 max_weight_item.update_func = lambda: "{:.1f}".format(rom.get(PS.MAX_WEIGHT))

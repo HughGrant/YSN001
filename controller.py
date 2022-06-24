@@ -2,6 +2,7 @@ from link import Link
 
 
 class Controller:
+
     def __init__(self, page: list[list]) -> None:
         self.crt_page = page
         self.index: int = 0

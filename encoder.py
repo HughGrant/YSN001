@@ -4,6 +4,7 @@ from lib.adafruit_debouncer import Debouncer
 
 
 class Encoder:
+
     def __init__(self, channelA, channelB, button) -> None:
         # setup ec11 rotary encoder
         # switch channel A&B will change the direction

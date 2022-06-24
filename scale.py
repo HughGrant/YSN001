@@ -8,12 +8,11 @@ class Scale:
 
     def __init__(self, pin_data: microcontroller.Pin,
                  pin_clk: microcontroller.Pin, rom: Setting) -> None:
-        # setup for hx711
-        self.hx = HX711_PIO(self.pin_data, self.pin_clk, tare=True)
+        self.hx = HX711_PIO(pin_data=pin_data, pin_clk=pin_clk, tare=True)
         self.rom = rom
         # set scale data read from flash
         self.hx.offset = self.rom.get('OFFSET')
-        self.hx.set_scale = self.rom.get('SCALAR')
+        self.hx.scalar = self.rom.get('SCALAR')
 
     def debug(self) -> None:
         reading = self.hx.read(5)
