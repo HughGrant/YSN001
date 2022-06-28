@@ -13,22 +13,27 @@ from x9c import X9C
 
 import parameter as PS
 
+# all the pin configs
+START_BUTTON = board.GP12
+SCALE_PIN_DATA = board.GP15
+SCALE_PIN_CLK = board.GP14
+
 # setup buttons
-start_btn_pin = digitalio.DigitalInOut(board.GP16)
+start_btn_pin = digitalio.DigitalInOut(START_BUTTON)
 start_btn_pin.direction = digitalio.Direction.INPUT
 start_btn_pin.pull = digitalio.Pull.UP
 start_btn = Debouncer(start_btn_pin)
 
 # setup board led
-led = digitalio.DigitalInOut(board.LED)
-led.direction = digitalio.Direction.OUTPUT
+board_led = digitalio.DigitalInOut(board.LED)
+board_led.direction = digitalio.Direction.OUTPUT
 
 # initialize a Setting instance
 rom = PS.Setting()
 rom.print_settings()
 
 # initialize load cell
-scale = Scale(pin_data=board.GP14, pin_clk=board.GP15, rom=rom)
+scale = Scale(SCALE_PIN_DATA, SCALE_PIN_CLK, rom)
 
 # initialize ec11 encoder
 ec11 = Encoder(board.GP4, board.GP3, board.GP2)
@@ -52,7 +57,7 @@ shared_return_link.press_func = lambda: goto(entry_page)
 
 # Main Page, Row 1, displaying current_weight/max_weight
 unit_weight_item = Link("READ_WEIGHT")
-unit_weight_item.update_func = lambda: "{:>6}".format(scale.hx.read_average())
+unit_weight_item.update_func = lambda: "{:>6}".format(scale.read())
 
 max_weight_item = Link(PS.MAX_WEIGHT)
 max_weight_item.update_func = lambda: "{:.1f}".format(rom.get(PS.MAX_WEIGHT))
@@ -102,9 +107,10 @@ calibration_page = [
 ]
 
 tare_item = Link("TARE")
-tare_item.press_func = lambda: print("taring done!!!")
+tare_item.press_func = lambda: scale.tare()
 
 calibration_item = Link("CALIBRATION")
+calibration_item.press_func = lambda: scale.determine_scalar(16.5)
 
 scale_page = [
     ["1. ", tare_item],
@@ -189,7 +195,7 @@ while CONFIG_MODE:
     ec11.update()
 
     if start_btn.fell:
-        print("just pressed start btn")
+        scale.debug()
 
     if ec11.btn.fell:
         controller.knob_press()
@@ -203,6 +209,7 @@ while CONFIG_MODE:
     # show correct blinking cursor
     if len(controller.links) > 1:
         screen.cursor_pos(controller.crt_link.x, controller.crt_link.y)
+        # must sleep for the blinking to be visible
         time.sleep(0.001)
     else:
         screen.cursor_hide()

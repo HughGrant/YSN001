@@ -13,7 +13,6 @@ CURRENT_CNT = 'CURRENT_CNT'
 MAX_CNT = 'MAX_CNT'
 MAX_DISPLAY_CNT = "MAX_DISPLAY_CNT"
 
-
 class Setting:
 
     def __init__(self) -> None:

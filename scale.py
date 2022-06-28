@@ -1,14 +1,17 @@
 import board, digitalio, microcontroller
 
-from lib.hx711.hx711_pio import HX711_PIO
-from parameter import Setting
+from lib.hx711.hx711_gpio import HX711_GPIO
+import parameter
 
 
 class Scale:
 
-    def __init__(self, pin_data: microcontroller.Pin,
-                 pin_clk: microcontroller.Pin, rom: Setting) -> None:
-        self.hx = HX711_PIO(pin_data=pin_data, pin_clk=pin_clk, tare=True)
+    def __init__(self, data: microcontroller.Pin, clk: microcontroller.Pin,
+                 rom: parameter.Setting) -> None:
+
+        self.hx = HX711_GPIO(pin_data=digitalio.DigitalInOut(data),
+                             pin_clk=digitalio.DigitalInOut(clk),
+                             tare=True)
         self.rom = rom
         # set scale data read from flash
         self.hx.offset = self.rom.get('OFFSET')
@@ -20,12 +23,21 @@ class Scale:
         print("[{: 8.2f} g] [{: 8} raw] offset: {}, scalar: {}".format(
             reading, reading_raw, self.hx.offset, self.hx.scalar))
 
-    def get_weight(self) -> float:
-        return self.hx.get_round_units()
+    def tare(self) -> None:
+        self.hx.tare()
+        self.rom.save(parameter.OFFSET, self.hx.offset)
+        self.rom.write()
 
-    def get_value(self) -> float:
-        return self.hx.get_value()
+    def read(self, average_count: int = 1) -> float:
+        return self.hx.read(average_count)
 
-    def tare(self, placed_weight: float):
+    def read_raw(self) -> int:
+        return self.hx.read_raw()
+
+    def read_average(self, count: int = 10) -> int:
+        return self.hx.read_average(count)
+
+    def determine_scalar(self, placed_weight: float):
         scalar = self.hx.determine_scalar(placed_weight)
-        self.rom.save('SCALAR', scalar)
+        self.rom.save(parameter.SCALAR, scalar)
+        self.rom.write()
